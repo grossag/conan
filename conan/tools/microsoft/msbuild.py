@@ -21,7 +21,8 @@ def msbuild_arch(arch):
     return {'x86': 'x86',
             'x86_64': 'x64',
             'armv7': 'ARM',
-            'armv8': 'ARM64'}.get(str(arch))
+            'armv8': 'ARM64',
+            'arm64ec': 'ARM64EC'}.get(str(arch))
 
 
 class MSBuild(object):
