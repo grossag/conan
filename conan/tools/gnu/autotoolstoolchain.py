@@ -1,3 +1,5 @@
+import os
+
 from conan.internal import check_duplicated_generator
 from conan.internal.internal_tools import raise_on_universal_arch
 from conan.tools.apple.apple import apple_min_version_flag, is_apple_os, to_apple_arch, apple_sdk_path
@@ -8,6 +10,7 @@ from conan.tools.build.flags import architecture_flag, build_type_flags, cppstd_
 from conan.tools.env import Environment
 from conan.tools.gnu.get_gnu_triplet import _get_gnu_triplet
 from conan.tools.microsoft import VCVars, msvc_runtime_flag, unix_path, check_min_vs, is_msvc
+from conan.tools.gnu.windres_wrapper import _generate_windres_wrapper
 from conan.errors import ConanException
 from conans.model.pkg_type import PackageType
 
@@ -53,6 +56,15 @@ class AutotoolsToolchain:
         self.fpic = self._conanfile.options.get_safe("fPIC")
         self.msvc_runtime_flag = self._get_msvc_runtime_flag()
         self.msvc_extra_flags = self._msvc_extra_flags()
+
+        # Check if we need a windres wrapper for rc
+        compilers_by_conf = self._conanfile.conf.get("tools.build:compiler_executables", default={}, check_type=dict)
+        if "rc" in compilers_by_conf:
+            self._windres_rc = os.path.join(self._conanfile.generators_folder, 'windres-rc')
+            self._windres_orig_rc = compilers_by_conf["rc"]
+        else:
+            self._windres_rc = None
+            self._windres_orig_rc = None
 
         # Cross build triplets
         self._host = self._conanfile.conf.get("tools.gnu:host_triplet")
@@ -178,6 +190,11 @@ class AutotoolsToolchain:
         env.append("CFLAGS", self.cflags)
         env.append("LDFLAGS", self.ldflags)
         env.prepend_path("PKG_CONFIG_PATH", self._conanfile.generators_folder)
+
+        if self._windres_rc:
+            env.define_path("RC", unix_path(self._conanfile, self._windres_rc))
+            env.define_path("WINDRES", unix_path(self._conanfile, self._windres_rc))
+
         return env
 
     def vars(self):
@@ -190,6 +207,8 @@ class AutotoolsToolchain:
         env.save_script("conanautotoolstoolchain")
         self.generate_args()
         VCVars(self._conanfile).generate(scope=scope)
+        if self._windres_rc:
+            _generate_windres_wrapper(self._windres_rc, unix_path(self._conanfile, self._windres_orig_rc))
 
     def _default_configure_shared_flags(self):
         args = []
