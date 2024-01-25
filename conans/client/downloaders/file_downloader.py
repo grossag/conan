@@ -45,7 +45,7 @@ class FileDownloader:
                         raise
                     else:
                         self._output.warning(exc, warn_tag="network")
-                        self._output.info(f"Waiting {retry_wait} seconds to retry...")
+                        self._output._write_message(f"Waiting {retry_wait} seconds to retry...")
                         time.sleep(retry_wait)
 
             self.check_checksum(file_path, md5, sha1, sha256)
@@ -114,7 +114,7 @@ class FileDownloader:
             if is_large_file:
                 hs = human_size(total_length)
                 action = "Downloading" if range_start == 0 else "Continuing download of"
-                self._output.info(f"{action} {hs} {base_name}")
+                self._output._write_message(f"{action} {hs} {base_name}")
 
             chunk_size = 1024 * 100
             total_downloaded_size = range_start
@@ -124,7 +124,7 @@ class FileDownloader:
                     file_handler.write(chunk)
                     total_downloaded_size += len(chunk)
                     if is_large_file:
-                        timed_output.info("Downloaded", total_downloaded_size)
+                        timed_output._write_message("Downloaded", total_downloaded_size)
 
             gzip = (response.headers.get("content-encoding") == "gzip")
             response.close()

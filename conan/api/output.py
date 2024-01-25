@@ -275,3 +275,11 @@ class TimedOutput:
             if self._msg_format:
                 msg = self._msg_format(msg, *args, **kwargs)
             self._out.info(msg)
+
+    def _write_message(self, msg, *args, **kwargs):
+        t = time.time()
+        if t - self._t > self._interval:
+            self._t = t
+            if self._msg_format:
+                msg = self._msg_format(msg, *args, **kwargs)
+            self._out._write_message(msg)
