@@ -2,7 +2,7 @@
 from conan.internal import check_duplicated_generator
 from conan.tools.build.flags import build_type_flags, cppstd_flag, build_type_link_flags
 from conan.tools.env import Environment
-from conan.tools.microsoft.visual import msvc_runtime_flag, VCVars
+from conan.tools.microsoft.visual import msvc_runtime_flag, VCVars, msvc_is_define_value_numeric
 
 
 class NMakeToolchain(object):
@@ -35,7 +35,7 @@ class NMakeToolchain(object):
                 # CL env-var can't accept '=' sign in /D option, it can be replaced by '#' sign:
                 # https://learn.microsoft.com/en-us/cpp/build/reference/cl-environment-variables
                 macro, value = define.split("=", 1)
-                if value and not value.isnumeric():
+                if value and not msvc_is_define_value_numeric(value):
                     value = f'\\"{value}\\"'
                 define = f"{macro}#{value}"
             formated_defines.append(f"/D\"{define}\"")

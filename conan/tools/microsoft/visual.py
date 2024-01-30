@@ -374,3 +374,15 @@ def msvs_toolset(conanfile):
         return msvc_version_to_toolset_version(compiler_version)
     if compiler == "intel-cc":
         return IntelCC(conanfile).ms_toolset
+
+
+def msvc_is_define_value_numeric(value):
+    try:
+        v = int(value, 0)
+        return True
+    except:
+        try:
+            v = float(value)
+            return True
+        except:
+            return False
