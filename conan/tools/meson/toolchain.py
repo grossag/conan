@@ -95,6 +95,8 @@ class MesonToolchain(object):
         :param backend: ``str`` ``backend`` Meson variable value. By default, ``ninja``.
         """
         raise_on_universal_arch(conanfile)
+        _gcc_use_wrapper(conanfile)
+
         self._conanfile = conanfile
         self._os = self._conanfile.settings.get_safe("os")
         self._is_apple_system = is_apple_os(self._conanfile)
@@ -460,3 +462,60 @@ class MesonToolchain(object):
         save(filename, self._content)
         # FIXME: Should we check the OS and compiler to call VCVars?
         VCVars(self._conanfile).generate()
+
+
+def _chmod_plus_x(filename):
+    if os.name == "posix":
+        os.chmod(filename, os.stat(filename).st_mode | 0o111)
+
+
+def _take_sysroot_flags(flags):
+    sysroot_flags = [f for f in flags if f.startswith('--sysroot=')]
+    remaining_flags = [f for f in flags if f not in sysroot_flags]
+    return (sysroot_flags, remaining_flags)
+
+
+def _take_binutils_flags(flags):
+    indices = [i for i in range(len(flags)) if flags[i] == '-B']
+    binutil_flags = [flags[i] for i in range(len(flags)) if (i in indices or (i - 1) in indices)]
+    remaining_flags = [flags[i] for i in range(len(flags)) if (i not in indices and (i - 1) not in indices)]
+    return (binutil_flags, remaining_flags)
+
+
+def _gcc_use_wrapper(conanfile):
+    if conanfile.settings.compiler == "gcc":
+        compiler_executables = conanfile.conf.get("tools.build:compiler_executables", check_type=dict)
+
+        c_compiler = compiler_executables["c"]
+        c_flags = conanfile.conf.get("tools.build:cflags", check_type=list)
+        c_sysroot_flags, c_remaining_flags = _take_sysroot_flags(c_flags)
+        c_binutils_flags, c_remaining_flags = _take_binutils_flags(c_remaining_flags)
+
+        cpp_compiler = compiler_executables["cpp"]
+        cpp_flags = conanfile.conf.get("tools.build:cxxflags", check_type=list)
+        cpp_sysroot_flags, cpp_remaining_flags = _take_sysroot_flags(cpp_flags)
+        cpp_binutils_flags, cpp_remaining_flags = _take_binutils_flags(cpp_remaining_flags)
+
+        if c_sysroot_flags or c_binutils_flags:
+            wrap_c = os.path.abspath("wrap_gcc")
+            save(wrap_c, textwrap.dedent("""\
+                #!/usr/bin/env bash
+                exec %s %s %s $@
+            """ % (c_compiler, ' '.join(c_sysroot_flags), ' '.join(c_binutils_flags))))
+            _chmod_plus_x(wrap_c)
+            conanfile.conf.define("tools.build:cflags", c_remaining_flags)
+            conanfile.conf.update("tools.build:compiler_executables", {
+                "c": wrap_c,
+            })
+
+        if cpp_sysroot_flags or cpp_binutils_flags:
+            wrap_cpp = os.path.abspath("wrap_g++")
+            save(wrap_cpp, textwrap.dedent("""\
+                #!/usr/bin/env bash
+                exec %s %s %s $@
+            """ % (cpp_compiler, ' '.join(cpp_sysroot_flags), ' '.join(cpp_binutils_flags))))
+            _chmod_plus_x(wrap_cpp)
+            conanfile.conf.define("tools.build:cxxflags", cpp_remaining_flags)
+            conanfile.conf.update("tools.build:compiler_executables", {
+                "cpp": wrap_cpp,
+            })
