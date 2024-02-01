@@ -175,7 +175,8 @@ class RecipeReference:
 
         condition = ((pattern == "&" and is_consumer) or
                       fnmatch.fnmatchcase(str(self), pattern) or
-                      fnmatch.fnmatchcase(self.repr_notime(), pattern))
+                      fnmatch.fnmatchcase(self.repr_notime(), pattern) or
+                      re.match(pattern, str(self)))
         if no_user_channel:
             condition = condition and not self.user and not self.channel
         if negate:
