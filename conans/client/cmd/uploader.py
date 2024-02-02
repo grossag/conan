@@ -166,7 +166,8 @@ class PackagePreparator:
     def _compress_package_files(self, layout, pref):
         output = ConanOutput(scope=str(pref))
         download_pkg_folder = layout.download_package()
-        compression_format = self._app.cache.new_config.get("core.upload:compression_format") or "gzip"
+
+        compression_format = self._global_conf.get("core.upload:compression_format") or "gzip"
         if compression_format == "gzip":
             compress_level_config = "core.gzip:compresslevel"
             package_file_name = PACKAGE_TGZ_NAME
@@ -179,7 +180,7 @@ class PackagePreparator:
             raise ConanException(f"Unsupported compression level '{compression_format}'")
 
         if is_dirty(package_file):
-            self._output.warning("Removing %s, marked as dirty" % package_file_name)
+            output.warning("Removing %s, marked as dirty" % package_file_name)
             os.remove(package_file)
             clean_dirty(package_file)
 
@@ -203,10 +204,10 @@ class PackagePreparator:
         files.pop(CONAN_MANIFEST)
 
         if os.path.isfile(package_file):
-            self._output.info(f"Not writing '{package_file}' because it already exists.")
+            output.info(f"Not writing '{package_file}' because it already exists.")
         else:
-            if self._output and not self._output.is_terminal:
-                self._output.info("Compressing package...")
+            if output and not output.is_terminal:
+                output.info("Compressing package...")
 
             source_files = {f: path for f, path in files.items()}
             compresslevel = self._global_conf.get("core.gzip:compresslevel", check_type=int)
