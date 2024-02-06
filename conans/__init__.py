@@ -3,3 +3,5 @@ REVISIONS = "revisions"  # Only when enabled in config, not by default look at s
 OAUTH_TOKEN = "oauth_token"
 
 __version__ = '2.2.3'
+
+__euc_version__ = '1'
