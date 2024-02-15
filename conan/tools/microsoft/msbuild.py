@@ -1,4 +1,5 @@
 from conan.errors import ConanException
+from conan.tools.build import cmd_args_to_string
 
 
 def msbuild_verbosity_cmd_line_arg(conanfile):
@@ -55,25 +56,29 @@ class MSBuild(object):
         :param targets: ``targets`` is an optional argument, defaults to ``None``, and otherwise it is a list of targets to build
         :return: ``str`` msbuild command line.
         """
-        # TODO: Enable output_binary_log via config
-        cmd = ('msbuild "%s" /p:Configuration="%s" /p:Platform=%s'
-               % (sln, self.build_type, self.platform))
+        cmd = ["msbuild", sln,
+               f"/p:Configuration={self.build_type}",
+               f"/p:Platform={self.platform}"]
 
         verbosity = msbuild_verbosity_cmd_line_arg(self._conanfile)
         if verbosity:
-            cmd += " {}".format(verbosity)
+            cmd.append(verbosity)
 
         maxcpucount = self._conanfile.conf.get("tools.microsoft.msbuild:max_cpu_count",
                                                check_type=int)
         if maxcpucount:
-            cmd += " /m:{}".format(maxcpucount)
+            cmd.append("/m:{}".format(maxcpucount))
+        else:
+            cmd.append("/m") # Allow parallel build, without a max cpu count
 
         if targets:
             if not isinstance(targets, list):
                 raise ConanException("targets argument should be a list")
-            cmd += " /target:{}".format(";".join(targets))
+            cmd.append("/target:{}".format(";".join(targets)))
 
-        return cmd
+        cmd += self._conanfile.conf.get("tools.microsoft.msbuild:flags",
+                                        default=[], check_type=list)
+        return cmd_args_to_string(cmd)
 
     def build(self, sln, targets=None):
         """
