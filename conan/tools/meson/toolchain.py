@@ -481,6 +481,8 @@ def _gcc_use_wrapper(conanfile):
 
         c_compiler = compiler_executables["c"]
         c_flags = conanfile.conf.get("tools.build:cflags", check_type=list)
+        if conanfile.settings_build.get_safe('arch') == 'x86_64' and conanfile.settings.get_safe("arch") == 'x86':
+            c_flags.append('-m32')
         c_sysroot_flags, c_remaining_flags = _take_sysroot_flags(c_flags)
         c_binutils_flags, c_remaining_flags = _take_binutils_flags(c_remaining_flags)
 
