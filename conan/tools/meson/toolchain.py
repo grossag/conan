@@ -495,6 +495,8 @@ def _gcc_use_wrapper(conanfile):
 
         cpp_compiler = compiler_executables["cpp"]
         cpp_flags = conanfile.conf.get("tools.build:cxxflags", check_type=list)
+        if conanfile.settings_build.get_safe('arch') == 'x86_64' and conanfile.settings.get_safe("arch") == 'x86':
+            cpp_flags.append('-m32')
         cpp_sysroot_flags, cpp_remaining_flags = _take_sysroot_flags(cpp_flags)
         cpp_binutils_flags, cpp_remaining_flags = _take_binutils_flags(cpp_remaining_flags)
 
