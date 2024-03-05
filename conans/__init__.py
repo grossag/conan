@@ -4,4 +4,4 @@ OAUTH_TOKEN = "oauth_token"
 
 __version__ = '2.2.3'
 
-__euc_version__ = '2'
+__euc_version__ = '3'
