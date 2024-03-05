@@ -7,7 +7,7 @@ from conan.errors import ConanException
 
 class PkgConfig:
 
-    def __init__(self, conanfile, library, pkg_config_path=None):
+    def __init__(self, conanfile, library, pkg_config_path=None, prefix=None):
         """
 
         :param conanfile: The current recipe object. Always use ``self``.
@@ -19,13 +19,18 @@ class PkgConfig:
         self._library = library
         self._info = {}
         self._pkg_config_path = pkg_config_path
+        self._prefix = prefix
         self._variables = None
 
     def _parse_output(self, option):
         executable = self._conanfile.conf.get("tools.gnu:pkg_config", default="pkg-config")
-        command = cmd_args_to_string([executable, '--' + option, self._library, '--print-errors'])
+        command = [executable, '--' + option, self._library, '--print-errors']
+        if self._prefix:
+            command += ["--define-variable=prefix=%s" % self._prefix]
+        command = cmd_args_to_string(command)
 
         env = Environment()
+        env.define("PKG_CONFIG_SYSROOT_DIR", "")
         if self._pkg_config_path:
             env.prepend_path("PKG_CONFIG_PATH", self._pkg_config_path)
         with env.vars(self._conanfile).apply():
