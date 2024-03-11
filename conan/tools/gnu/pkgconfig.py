@@ -80,6 +80,14 @@ class PkgConfig:
         return self._get_option('modversion')
 
     @property
+    def requires(self):
+        return [lib.split()[0] for lib in self._get_option('print-requires').splitlines()]
+
+    @property
+    def requires_private(self):
+        return [lib.split()[0] for lib in self._get_option('print-requires-private').splitlines()]
+
+    @property
     def variables(self):
         if self._variables is None:
             variable_names = self._parse_output('print-variables').split()
@@ -113,3 +121,21 @@ class PkgConfig:
         cpp_info.includedirs = self.includedirs
         cpp_info.cflags = self.cflags
         cpp_info.cxxflags = self.cflags
+
+        requires = list(set(self.requires + self.requires_private))
+
+        # From the list of Requires in the .pc file, map them to conan dependencies
+        # and their components
+        for dependency in self._conanfile.dependencies.host.values():
+            if dependency.cpp_info.get_property("pkg_config_name") in requires:
+                cpp_info.requires += ["%s::%s" % (dependency.ref.name, dependency.ref.name)]
+                requires.remove(dependency.cpp_info.get_property("pkg_config_name"))
+
+            for component_name, component in dependency.cpp_info.components.items():
+                if component.get_property("pkg_config_name") in requires:
+                    cpp_info.requires += ["%s::%s" % (dependency.ref.name, component_name)]
+                    requires.remove(component.get_property("pkg_config_name"))
+
+        # Any remaining requires are assumed to be internal, conan will later verify
+        # the content of requires so we will know if something was missing.
+        cpp_info.requires += requires
