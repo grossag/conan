@@ -25,7 +25,7 @@ class PkgConfigCache:
         cpp_info = CppInfo()
         pkg_config = PkgConfig(self._conanfile, path,
                                pkg_config_path=[
-                                  os.getcwd(), # To find PkgConfigDeps generated .pc files for our dependencies
+                                  self._conanfile.generators_folder, # To find PkgConfigDeps generated .pc files for our dependencies
                                   os.path.dirname(path), # To find any other .pc files from this package
                                ],
                                prefix=self._conan_prefix)
