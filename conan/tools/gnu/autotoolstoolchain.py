@@ -13,6 +13,8 @@ from conan.tools.microsoft import VCVars, msvc_runtime_flag, unix_path, check_mi
 from conan.tools.gnu.windres_wrapper import _generate_windres_wrapper
 from conan.errors import ConanException
 from conans.model.pkg_type import PackageType
+from conan.tools.env import VirtualBuildEnv
+from conan.tools.build.wrapcc import generate_wrapcc
 
 
 class AutotoolsToolchain:
@@ -80,6 +82,12 @@ class AutotoolsToolchain:
 
         self.sysroot_flag = None
 
+        self.cc_for_build = None
+        self.cflags_for_build = []
+        self.cpp_for_build = None
+        self.cppflags_for_build = []
+        self.ldflags_for_build = []
+
         if cross_building(self._conanfile):
             os_host = conanfile.settings.get_safe("os")
             arch_host = conanfile.settings.get_safe("arch")
@@ -103,6 +111,25 @@ class AutotoolsToolchain:
                 # -isysroot makes all includes for your library relative to the build directory
                 self.apple_isysroot_flag = "-isysroot {}".format(sdk_path) if sdk_path else None
 
+            build_env = VirtualBuildEnv(self._conanfile, auto_generate=True).vars()
+            self.cc_for_build = build_env.get("CC_FOR_BUILD")
+            self.cflags_for_build = self._get_env_list(build_env.get("CFLAGS_FOR_BUILD", []))
+            if self.cc_for_build:
+                (wrap_cc_for_build, remaining_flags) = generate_wrapcc(conanfile, "wrap_cc_for_build", self.cc_for_build, self.cflags_for_build)
+                if wrap_cc_for_build:
+                    self.cc_for_build = wrap_cc_for_build
+                    self.cflags_for_build = remaining_flags
+
+            self.cpp_for_build = build_env.get("CPP_FOR_BUILD")
+            self.cppflags_for_build = self._get_env_list(build_env.get("CPPFLAGS_FOR_BUILD", []))
+            if self.cpp_for_build:
+                (wrap_cpp_for_build, remaining_flags) = generate_wrapcc(conanfile, "wrap_cpp_for_build", self.cpp_for_build, self.cppflags_for_build)
+                if wrap_cpp_for_build:
+                    self.cpp_for_build = wrap_cpp_for_build
+                    self.cppflags_for_build = remaining_flags
+
+            self.ldflags_for_build = self._get_env_list(build_env.get("LDFLAGS_FOR_BUILD", []))
+
         sysroot = self._conanfile.conf.get("tools.build:sysroot")
         sysroot = sysroot.replace("\\", "/") if sysroot is not None else None
         self.sysroot_flag = "--sysroot {}".format(sysroot) if sysroot else None
@@ -112,6 +139,11 @@ class AutotoolsToolchain:
                               self._get_triplets()
         self.autoreconf_args = self._default_autoreconf_flags()
         self.make_args = []
+
+    @staticmethod
+    def _get_env_list(v):
+        # FIXME: Should Environment have the "check_type=None" keyword as Conf?
+        return v.strip().split() if not isinstance(v, list) else v
 
     def _get_msvc_runtime_flag(self):
         flag = msvc_runtime_flag(self._conanfile)
@@ -194,6 +226,17 @@ class AutotoolsToolchain:
         if self._windres_rc:
             env.define_path("RC", unix_path(self._conanfile, self._windres_rc))
             env.define_path("WINDRES", unix_path(self._conanfile, self._windres_rc))
+
+        if self.cc_for_build:
+            env.define("CC_FOR_BUILD", self.cc_for_build)
+            env.define("CFLAGS_FOR_BUILD", self.cflags_for_build)
+
+        if self.cpp_for_build:
+            env.define("CPP_FOR_BUILD", self.cpp_for_build)
+            env.define("CPPFLAGS_FOR_BUILD", self.cppflags_for_build)
+
+        if self.ldflags_for_build:
+            env.define("LDFLAGS_FOR_BUILD", self.ldflags_for_build)
 
         return env
 
