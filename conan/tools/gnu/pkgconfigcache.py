@@ -71,7 +71,9 @@ class PkgConfigCache:
     def install(self):
         cache_file_path = self._cache_file_path
         mkdir(self, os.path.dirname(cache_file_path))
-        save(self, cache_file_path, yaml.dump(self._components))
+        yaml_data = yaml.dump(self._components)
+        yaml_data = yaml_data.replace(self._conanfile.package_folder, self._conan_prefix)
+        save(self, cache_file_path, yaml_data)
 
     def load(self):
         yaml_data = load(self._conanfile, self._cache_file_path)
