@@ -90,8 +90,8 @@ class UploadAPI:
             basename = os.path.basename(file)
             full_url = url + basename
             try:
-                # Always upload summary .json but only upload blob if it does not already exist
-                if file.endswith(".json") or not uploader.exists(full_url, auth=None):
+                # Only upload if it does not already exist
+                if not uploader.exists(full_url, auth=None):
                     output.info(f"Uploading file '{basename}' to backup sources server")
                     uploader.upload(full_url, file, dedup=False, auth=None)
                 else:
