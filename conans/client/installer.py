@@ -1,3 +1,4 @@
+import fnmatch
 import os
 import shutil
 from multiprocessing.pool import ThreadPool
@@ -185,6 +186,12 @@ class BinaryInstaller:
         conanfile = node.conanfile
         if node.binary == BINARY_EDITABLE:
             return
+
+        if download_source:
+            download_source_exclude = conanfile.conf.get("tools.build:download_source_exclude", check_type=str)
+            patterns = download_source_exclude.split("|")
+            if any(fnmatch.fnmatch(conanfile.name, pattern) for pattern in patterns):
+                return
 
         recipe_layout = self._cache.recipe_layout(node.ref)
         export_source_folder = recipe_layout.export_sources()
