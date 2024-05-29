@@ -220,12 +220,13 @@ class Requirement:
         propagating includes or libs or run info or both are visible or the reference is the same,
         we consider the requires equal, so they can conflict"""
         return (self.ref.name == other.ref.name and self.build == other.build and
+                self.options == other.options and
                 (self.override or  # an override with same name and context, always match
                  (self.headers and other.headers) or
                  (self.libs and other.libs) or
                  (self.run and other.run) or
                  ((self.visible or self.test) and (other.visible or other.test)) or
-                 (self.ref == other.ref and self.options == other.options)))
+                 (self.ref == other.ref)))
 
     def aggregate(self, other):
         """ when closing loop and finding the same dependency on a node, the information needs
