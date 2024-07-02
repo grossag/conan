@@ -38,11 +38,10 @@ class DepsGraphBuilder(object):
         assert isinstance(profile_build.options, Options)
         # print("Loading graph")
         dep_graph = DepsGraph()
-
         self._prepare_node(root_node, profile_host, profile_build, Options())
         self._initialize_requires(root_node, dep_graph, graph_lock, profile_build, profile_host)
         dep_graph.add_node(root_node)
-
+        zzl = None
         open_requires = deque((r, root_node) for r in root_node.conanfile.requires.values())
         try:
             while open_requires:
@@ -53,10 +52,14 @@ class DepsGraphBuilder(object):
                 new_node = self._expand_require(require, node, dep_graph, profile_host,
                                                 profile_build, graph_lock)
                 if new_node:
+                    if "libx11/1.8.7" in str(new_node):
+                        zzl = new_node
                     self._initialize_requires(new_node, dep_graph, graph_lock, profile_build,
                                               profile_host)
                     open_requires.extendleft((r, new_node)
                                              for r in reversed(new_node.conanfile.requires.values()))
+                    # if zzl and len(zzl.transitive_deps) > 14:
+                    #     import pdb;pdb.set_trace()
             self._remove_overrides(dep_graph)
             check_graph_provides(dep_graph)
         except GraphError as e:
@@ -195,6 +198,8 @@ class DepsGraphBuilder(object):
                 if not resolved:
                     self._resolve_alias(node, require, alias, graph)
             self._resolve_replace_requires(node, require, profile_build, profile_host, graph)
+            if "libx11/1.8.7" in str(node) and "libxdmcp/1.1.4" in str(require):
+                import pdb;pdb.set_trace()
             node.transitive_deps[require] = TransitiveRequirement(require, node=None)
 
     def _resolve_alias(self, node, require, alias, graph):
