@@ -35,11 +35,7 @@ class _PCContentGenerator:
         Requires: {{ requires|join(' ') }}
         {% endif %}
         {% if requires_private|length %}
-        {% if transitive_libs %}
-        Requires: {{ requires_private|join(' ') }}
-        {% else %}
         Requires.private: {{ requires_private|join(' ') }}
-        {% endif %}
         {% endif %}
     """)
 
@@ -114,13 +110,20 @@ class _PCContentGenerator:
 
     def _get_context(self, info):
         pc_variables = self._get_pc_variables(info.cpp_info)
+        requires = []
+        requires_private = []
+        if self._transitive_libs:
+            requires = info.requires + info.requires_private
+        else:
+            requires += info.requires
+            requires_private += info.requires_private
         context = {
             "name": info.name,
             "description": info.description,
             "version": self._dep.ref.version,
             "transitive_libs": self._transitive_libs,
-            "requires": info.requires,
-            "requires_private": info.requires_private,
+            "requires": requires,
+            "requires_private": requires_private,
             "pc_variables": pc_variables,
             "cflags": "",
             "libflags": ""
