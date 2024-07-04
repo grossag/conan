@@ -562,6 +562,7 @@ class CppInfo:
             return
         # Accumulate all external requires
         external = set(r.split("::")[0] for r in self._package.requires if "::" in r)
+        external.update(r.split("::")[0] for r in self._package.requires_private if "::" in r)
         internal = set(r for r in self._package.requires if "::" not in r)
         # TODO: Cache this, this is computed in different places
         for key, comp in self.components.items():
