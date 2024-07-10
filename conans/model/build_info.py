@@ -80,6 +80,7 @@ class _Component:
 
         self._sysroot = None
         self._requires = None
+        self._requires_private = None
 
         # LEGACY 1.X fields, can be removed in 2.X
         self.names = MockInfoProperty("cpp_info.names")
@@ -111,6 +112,7 @@ class _Component:
             "objects": self._objects,
             "sysroot": self._sysroot,
             "requires": self._requires,
+            "requires_private": self._requires_private,
             "properties": self._properties
         }
 
@@ -323,6 +325,16 @@ class _Component:
         self._requires = value
 
     @property
+    def requires_private(self):
+        if self._requires_private is None:
+            self._requires_private = []
+        return self._requires_private
+
+    @requires_private.setter
+    def requires_private(self, value):
+        self._requires_private = value
+
+    @property
     def required_component_names(self):
         """ Names of the required components of the same package (not scoped with ::)"""
         if self.requires is None:
@@ -370,6 +382,10 @@ class _Component:
         if other.requires:
             current_values = self.get_init("requires", [])
             merge_list(other.requires, current_values)
+
+        if other.requires_private:
+            current_values = self.get_init("requires_private", [])
+            merge_list(other.requires_private, current_values)
 
         if other._properties:
             current_values = self.get_init("_properties", {})
@@ -546,6 +562,7 @@ class CppInfo:
             return
         # Accumulate all external requires
         external = set(r.split("::")[0] for r in self._package.requires if "::" in r)
+        external.update(r.split("::")[0] for r in self._package.requires_private if "::" in r)
         internal = set(r for r in self._package.requires if "::" not in r)
         # TODO: Cache this, this is computed in different places
         for key, comp in self.components.items():
