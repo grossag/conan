@@ -28,8 +28,9 @@ class PkgConfigCache:
                                   self._conanfile.generators_folder, # To find PkgConfigDeps generated .pc files for our dependencies
                                   os.path.dirname(path), # To find any other .pc files from this package
                                ],
-                               prefix=self._conan_prefix)
-        pkg_config.fill_cpp_info(cpp_info)
+                               prefix=self._conan_prefix,
+                               no_recursive=True)
+        pkg_config.fill_cpp_info(cpp_info, is_system=False)
 
         filename = os.path.basename(path)[:-3]
         cpp_info.set_property("pkg_config_name",  filename)

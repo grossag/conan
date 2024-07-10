@@ -38,11 +38,9 @@ class DepsGraphBuilder(object):
         assert isinstance(profile_build.options, Options)
         # print("Loading graph")
         dep_graph = DepsGraph()
-
         self._prepare_node(root_node, profile_host, profile_build, Options())
         self._initialize_requires(root_node, dep_graph, graph_lock, profile_build, profile_host)
         dep_graph.add_node(root_node)
-
         open_requires = deque((r, root_node) for r in root_node.conanfile.requires.values())
         try:
             while open_requires:

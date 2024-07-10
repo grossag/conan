@@ -7,7 +7,7 @@ from conan.errors import ConanException
 
 class PkgConfig:
 
-    def __init__(self, conanfile, library, pkg_config_path=None, prefix=None):
+    def __init__(self, conanfile, library, pkg_config_path=None, prefix=None, no_recursive=False):
         """
 
         :param conanfile: The current recipe object. Always use ``self``.
@@ -21,10 +21,13 @@ class PkgConfig:
         self._pkg_config_path = pkg_config_path
         self._prefix = prefix
         self._variables = None
+        self._no_recursive = no_recursive
 
     def _parse_output(self, option):
         executable = self._conanfile.conf.get("tools.gnu:pkg_config", default="pkg-config")
         command = [executable, '--' + option, self._library, '--print-errors']
+        if self._no_recursive:
+            command += ["--maximum-traverse-depth=2"]
         if self._prefix:
             command += ["--define-variable=prefix=%s" % self._prefix]
         command = cmd_args_to_string(command)
@@ -122,20 +125,19 @@ class PkgConfig:
         cpp_info.cflags = self.cflags
         cpp_info.cxxflags = self.cflags
 
-        requires = list(set(self.requires + self.requires_private))
-
-        # From the list of Requires in the .pc file, map them to conan dependencies
-        # and their components
+        # The order of requires and requires_private make sense for linker
+        # on Linux, so we need to keep it in cpp_info
+        pc_conan_map = {}
         for dependency in self._conanfile.dependencies.host.values():
-            if dependency.cpp_info.get_property("pkg_config_name") in requires:
-                cpp_info.requires += ["%s::%s" % (dependency.ref.name, dependency.ref.name)]
-                requires.remove(dependency.cpp_info.get_property("pkg_config_name"))
+            pkg_config_name = dependency.cpp_info.get_property("pkg_config_name")
+            pc_conan_map[pkg_config_name] = "%s::%s" % (dependency.ref.name, dependency.ref.name)
 
             for component_name, component in dependency.cpp_info.components.items():
-                if component.get_property("pkg_config_name") in requires:
-                    cpp_info.requires += ["%s::%s" % (dependency.ref.name, component_name)]
-                    requires.remove(component.get_property("pkg_config_name"))
+                component_pkg_config_name = component.get_property("pkg_config_name")
+                pc_conan_map[component_pkg_config_name] = "%s::%s" % (dependency.ref.name, component_name)
 
-        # Any remaining requires are assumed to be internal, conan will later verify
-        # the content of requires so we will know if something was missing.
-        cpp_info.requires += requires
+        for dst, src in [(cpp_info.requires, self.requires), (cpp_info.requires_private, self.requires_private)]:
+            for require in src:
+                # From the list of Requires in the .pc file, map them to conan dependencies
+                # and their components
+                dst.append(pc_conan_map.get(require, require))
