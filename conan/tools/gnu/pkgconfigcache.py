@@ -21,7 +21,7 @@ class PkgConfigCache:
     def _cache_file_path(self):
         return os.path.join(self._conanfile.package_folder, "res", "pkg_config_cache.yml")
 
-    def add_file(self, path, use_mod_version=False):
+    def add_file(self, path, use_mod_version=False, system_libs=None):
         cpp_info = CppInfo()
         pkg_config = PkgConfig(self._conanfile, path,
                                pkg_config_path=[
@@ -30,7 +30,7 @@ class PkgConfigCache:
                                ],
                                prefix=self._conan_prefix,
                                no_recursive=True)
-        pkg_config.fill_cpp_info(cpp_info, is_system=False)
+        pkg_config.fill_cpp_info(cpp_info, is_system=False, system_libs=system_libs)
 
         filename = os.path.basename(path)[:-3]
         cpp_info.set_property("pkg_config_name",  filename)
@@ -60,10 +60,10 @@ class PkgConfigCache:
 
         self._components[filename] = cpp_info.serialize()
 
-    def add_folder(self, path, use_mod_version=False):
+    def add_folder(self, path, use_mod_version=False, system_libs=None):
         found = False
         for fn in glob.glob(os.path.join(path, "*.pc")):
-            self.add_file(fn)
+            self.add_file(fn, system_libs=system_libs)
             found = True
         if not found:
             raise ConanException("PkgConfigCache error, no .pc files found in '{}'".format(path))

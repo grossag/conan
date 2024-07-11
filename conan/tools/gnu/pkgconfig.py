@@ -27,7 +27,7 @@ class PkgConfig:
         executable = self._conanfile.conf.get("tools.gnu:pkg_config", default="pkg-config")
         command = [executable, '--' + option, self._library, '--print-errors']
         if self._no_recursive:
-            command += ["--maximum-traverse-depth=2"]
+            command += ["--maximum-traverse-depth=1"]
         if self._prefix:
             command += ["--define-variable=prefix=%s" % self._prefix]
         command = cmd_args_to_string(command)
