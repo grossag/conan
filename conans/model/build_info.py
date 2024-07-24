@@ -567,6 +567,8 @@ class CppInfo:
         # TODO: Cache this, this is computed in different places
         for key, comp in self.components.items():
             external.update(r.split("::")[0] for r in comp.requires if "::" in r)
+            external.update(r.split("::")[0] for r in comp.requires_private if "::" in r)
+
             internal.update(r for r in comp.requires if "::" not in r)
 
         missing_internal = list(internal.difference(self.components))
