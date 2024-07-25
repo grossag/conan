@@ -1,5 +1,6 @@
 from io import StringIO
 
+from conan.tools.apple.apple import is_apple_os
 from conan.tools.build import cmd_args_to_string
 from conan.tools.env import Environment
 from conan.errors import ConanException
@@ -118,8 +119,24 @@ class PkgConfig:
             cpp_info.libs = [lib for lib in self.libs if lib not in system_libs]
             cpp_info.system_libs = [lib for lib in self.libs if lib in system_libs]
         cpp_info.libdirs = self.libdirs
-        cpp_info.sharedlinkflags = self.linkflags
-        cpp_info.exelinkflags = self.linkflags
+        if is_apple_os(self._conanfile):
+            linkflags = []
+            frameworks = []
+            is_framework = False
+            for linkflag in self.linkflags:
+                if is_framework:
+                    frameworks.append(linkflag)
+                    is_framework = False
+                elif '-framework' == linkflag.strip():
+                    is_framework = True
+                else:
+                    linkflags.append(linkflag)
+            cpp_info.sharedlinkflags = linkflags
+            cpp_info.exelinkflags = linkflags
+            cpp_info.frameworks = frameworks
+        else:
+            cpp_info.sharedlinkflags = self.linkflags
+            cpp_info.exelinkflags = self.linkflags
         cpp_info.defines = self.defines
         cpp_info.includedirs = self.includedirs
         cpp_info.cflags = self.cflags

@@ -22,7 +22,10 @@ class PkgConfigCache:
         return os.path.join(self._conanfile.package_folder, "res", "pkg_config_cache.yml")
 
     def add_file(self, path, use_mod_version=False, system_libs=None):
-        cpp_info = CppInfo()
+        # This CppInfo will be filled into conanfile.cpp_info.components,
+        # so it should be created with set_defaults as True, same as
+        # conans.model.layout.Infos
+        cpp_info = CppInfo(set_defaults=True)
         pkg_config = PkgConfig(self._conanfile, path,
                                pkg_config_path=[
                                   self._conanfile.generators_folder, # To find PkgConfigDeps generated .pc files for our dependencies
