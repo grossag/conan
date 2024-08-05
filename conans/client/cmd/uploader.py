@@ -273,14 +273,6 @@ def compress_files(files, name, dest_dir, compressformat=None, compresslevel=Non
 
     if compressformat == "zstd":
         with open(tar_path, "wb") as tarfile_obj:
-            def reset_tarinfo(tarinfo):
-                """
-                Resets mtime in the tarinfo for consistency with
-                gzopen_without_timestamps()
-                """
-                tarinfo.mtime = 0
-                return tarinfo
-
             # Only provide level if it was overridden by config.
             zstd_kwargs = {}
             if compresslevel is not None:
@@ -295,7 +287,7 @@ def compress_files(files, name, dest_dir, compressformat=None, compresslevel=Non
                 with tarfile.open(mode="w|", fileobj=stream_writer,
                                   format=tarfile.PAX_FORMAT) as tar:
                     for filename, abs_path in sorted(files.items()):
-                        tar.add(abs_path, filename, recursive=False, filter=reset_tarinfo)
+                        tar.add(abs_path, filename, recursive=False)
     else:
         # FIXME, better write to disk sequentially and not keep tgz contents in memory
         with set_dirty_context_manager(tar_path), open(tar_path, "wb") as tgz_handle:
